@@ -7,7 +7,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Computer Shop'), findsOneWidget);
-    expect(find.text('Sprint 2 Base'), findsOneWidget);
+    expect(find.text('Build Your Dream Rig'), findsOneWidget);
     expect(find.text('Builder'), findsOneWidget);
   });
 }
