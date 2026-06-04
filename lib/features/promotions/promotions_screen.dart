@@ -6,9 +6,9 @@ class PromotionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _PlaceholderFeatureScreen(
-      title: 'Promotions',
-      icon: Icons.local_offer,
-      description: 'Placeholder for deals and promotion banners.',
+      title: 'Compare',
+      icon: Icons.compare_arrows,
+      description: 'Placeholder for product comparison work.',
     );
   }
 }

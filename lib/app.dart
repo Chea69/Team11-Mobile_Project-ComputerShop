@@ -19,7 +19,7 @@ class _ComputerShopAppState extends State<ComputerShopApp> {
     return AppControllerScope(
       controller: _controller,
       child: MaterialApp.router(
-        title: 'Computer Shop',
+        title: 'NEXUS',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,

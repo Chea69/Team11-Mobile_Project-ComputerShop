@@ -6,8 +6,8 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _PlaceholderFeatureScreen(
-      title: 'Settings',
-      icon: Icons.settings,
+      title: 'More',
+      icon: Icons.grid_view,
       description: 'Placeholder for theme, profile, and app settings.',
     );
   }

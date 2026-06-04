@@ -6,7 +6,7 @@ class FavoritesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _PlaceholderFeatureScreen(
-      title: 'Favorites',
+      title: 'Saved',
       icon: Icons.favorite,
       description: 'Placeholder for saved products.',
     );

@@ -72,8 +72,17 @@ class AppTheme {
       useMaterial3: true,
       brightness: colorScheme.brightness,
       colorScheme: colorScheme,
+      fontFamily: AppTextStyles.fontFamily,
       scaffoldBackgroundColor: scaffoldBackgroundColor,
       textTheme: textTheme,
+      splashColor: colorScheme.primary.withValues(alpha: 0.08),
+      highlightColor: colorScheme.secondary.withValues(alpha: 0.06),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: colorScheme.onSurface,
+          highlightColor: colorScheme.primary.withValues(alpha: 0.12),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
@@ -81,6 +90,7 @@ class AppTheme {
         foregroundColor: colorScheme.onSurface,
         titleTextStyle: AppTextStyles.title.copyWith(
           color: colorScheme.onSurface,
+          fontWeight: FontWeight.w900,
         ),
       ),
       cardTheme: CardThemeData(
@@ -88,8 +98,27 @@ class AppTheme {
         color: colorScheme.surface,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           side: BorderSide(color: outlineColor),
+        ),
+      ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: AppTextStyles.body.copyWith(color: colorScheme.onSurface),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.bgBase,
+        hintStyle: AppTextStyles.body.copyWith(color: mutedTextColor),
+        labelStyle: AppTextStyles.label.copyWith(color: mutedTextColor),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: colorScheme.primary.withValues(alpha: 0.22),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.primary),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -114,10 +143,8 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
-          textStyle: AppTextStyles.label,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          textStyle: AppTextStyles.label.copyWith(fontWeight: FontWeight.w900),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
