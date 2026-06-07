@@ -18,6 +18,7 @@ class NexusFlutterApp extends StatelessWidget {
   const NexusFlutterApp({super.key});
 
   static bool _hidesChrome(ViewState view) =>
+      view == ViewState.splash ||
       view == ViewState.onboarding ||
       view == ViewState.login ||
       view == ViewState.signup ||
@@ -39,6 +40,7 @@ class NexusFlutterApp extends StatelessWidget {
     return Consumer<NexusController>(
       builder: (context, controller, _) {
         Widget route(ViewState view) => switch (view) {
+          ViewState.splash => SplashScreen(controller: controller),
           ViewState.onboarding => OnboardingCarousel(controller: controller),
           ViewState.login => const LoginScreen(),
           ViewState.signup => const SignupScreen(),

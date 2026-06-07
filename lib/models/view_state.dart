@@ -1,5 +1,6 @@
 /// Mirrors `ViewState` from the exported React Nexus app navigation.
 enum ViewState {
+  splash,
   home,
   product,
   builder,

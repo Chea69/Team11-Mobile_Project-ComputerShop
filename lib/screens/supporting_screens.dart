@@ -560,6 +560,9 @@ class AccountOverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = context.watch<NexusController>();
+    final user =
+        ctrl.currentUser ??
+        const NexusUser(name: 'Guest Insider', email: 'Sign in to sync');
     final muted = Theme.of(context).dividerColor.withValues(alpha: .65);
 
     Widget row(
@@ -616,7 +619,7 @@ class AccountOverviewScreen extends StatelessWidget {
                     shaderCallback: (b) =>
                         NexusPalette.textGradientHorizontal.createShader(b),
                     child: Text(
-                      'HX',
+                      user.initials,
                       style: GoogleFonts.jetBrainsMono(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -630,7 +633,7 @@ class AccountOverviewScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'HEX INSIDER',
+                        user.name.toUpperCase(),
                         style: GoogleFonts.jetBrainsMono(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -638,7 +641,9 @@ class AccountOverviewScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Platinum · Neon rewards tier',
+                        ctrl.isSignedIn
+                            ? '${user.email} - Platinum rewards tier'
+                            : user.email,
                         style: Theme.of(
                           context,
                         ).textTheme.bodySmall?.copyWith(color: muted),
@@ -695,12 +700,17 @@ class AccountOverviewScreen extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         OutlinedButton(
-          onPressed: () {
-            ctrl.navigate(ViewState.login);
+          onPressed: () async {
+            if (!ctrl.isSignedIn) {
+              ctrl.navigate(ViewState.login);
+              return;
+            }
+            await ctrl.signOut();
+            if (!context.mounted) return;
             showNexusToast(context, 'SIGNED OUT');
           },
           child: Text(
-            'SIGN OUT',
+            ctrl.isSignedIn ? 'SIGN OUT' : 'SIGN IN',
             style: GoogleFonts.jetBrainsMono(fontSize: 11),
           ),
         ),

@@ -235,9 +235,9 @@ class ProductFavorites extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = Theme.of(context).dividerColor.withValues(alpha: .6);
-    final list = featuredProducts.where(
-      (p) => controller.favorites.contains(p.id),
-    );
+    final list = allCatalogProducts
+        .where((p) => controller.favorites.contains(p.id))
+        .toList(growable: false);
 
     if (list.isEmpty) {
       return Center(
@@ -276,14 +276,28 @@ class ProductFavorites extends StatelessWidget {
       crossAxisSpacing: 16,
       children: [
         ...list.map(
-          (product) => ProductCardMini(
-            product,
-            fav: controller.favorites.contains(product.id),
-            onTap: () => controller.navigate(
-              ViewState.product,
-              params: {'id': product.id},
+          (product) => Dismissible(
+            key: ValueKey('favorite-${product.id}'),
+            direction: DismissDirection.horizontal,
+            background: const _SwipeRemoveBackground(
+              alignment: Alignment.centerLeft,
             ),
-            toggleFavorite: () => controller.toggleFavorite(product.id),
+            secondaryBackground: const _SwipeRemoveBackground(
+              alignment: Alignment.centerRight,
+            ),
+            onDismissed: (_) {
+              controller.removeFavorite(product.id);
+              showNexusToast(context, 'REMOVED FROM SAVED');
+            },
+            child: ProductCardMini(
+              product,
+              fav: controller.favorites.contains(product.id),
+              onTap: () => controller.navigate(
+                ViewState.product,
+                params: {'id': product.id},
+              ),
+              toggleFavorite: () => controller.toggleFavorite(product.id),
+            ),
           ),
         ),
       ],
@@ -377,52 +391,86 @@ class BuildFavorites extends StatelessWidget {
           );
         }
 
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: muted.withValues(alpha: .5)),
+        return Dismissible(
+          key: ValueKey('saved-build-$i-${build.cpu?.id}-${build.gpu?.id}'),
+          direction: DismissDirection.horizontal,
+          background: const _SwipeRemoveBackground(
+            alignment: Alignment.centerLeft,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Custom Rig #${i + 1}',
-                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                      fontWeight: FontWeight.bold,
+          secondaryBackground: const _SwipeRemoveBackground(
+            alignment: Alignment.centerRight,
+          ),
+          onDismissed: (_) {
+            controller.removeSavedBuildAt(i);
+            showNexusToast(context, 'BUILD REMOVED');
+          },
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: muted.withValues(alpha: .5)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Custom Rig #${i + 1}',
+                      style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  Text(
-                    '\$ ${dollars.toStringAsFixed(2)}',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontWeight: FontWeight.bold,
-                      color: NexusPalette.cyan,
+                    Text(
+                      '\$ ${dollars.toStringAsFixed(2)}',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontWeight: FontWeight.bold,
+                        color: NexusPalette.cyan,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              line('CPU', build.cpu?.name),
-              line('GPU', build.gpu?.name),
-              Align(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: OutlinedButton(
-                    onPressed: () => controller.navigate(ViewState.builder),
-                    child: Text(
-                      'LOAD IN BUILDER',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 10),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                line('CPU', build.cpu?.name),
+                line('GPU', build.gpu?.name),
+                Align(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: OutlinedButton(
+                      onPressed: () => controller.navigate(ViewState.builder),
+                      child: Text(
+                        'LOAD IN BUILDER',
+                        style: GoogleFonts.jetBrainsMono(fontSize: 10),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+}
+
+class _SwipeRemoveBackground extends StatelessWidget {
+  const _SwipeRemoveBackground({required this.alignment});
+
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.redAccent.withValues(alpha: .22),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: .45)),
+      ),
+      child: const Icon(Icons.delete_rounded, color: Colors.redAccent),
     );
   }
 }
@@ -445,7 +493,8 @@ class CompareScreen extends StatelessWidget {
     _CompareSpec(label: 'PROD SCORE', key: 'productivity', isNumber: true),
   ];
 
-  static dynamic _value(Product product, String key) {
+  static dynamic _value(Product? product, String key) {
+    if (product == null) return null;
     switch (key) {
       case 'price':
         return product.price;
@@ -484,10 +533,12 @@ class CompareScreen extends StatelessWidget {
 
   Widget _compareProductCard(
     BuildContext context,
-    Product product, {
-    required bool left,
+    NexusController controller, {
+    required int slot,
+    required Product? product,
   }) {
     final muted = NexusPalette.textMuted(context);
+    final left = slot == 0;
 
     return Expanded(
       child: Stack(
@@ -506,82 +557,130 @@ class CompareScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AspectRatio(
-                  aspectRatio: 1,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: .5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: NexusNetworkImage(
-                        imageUrl: product.image,
-                        fit: BoxFit.contain,
+                _CompareProductSelector(
+                  value: product?.id,
+                  onChanged: (id) => controller.setCompareProduct(slot, id),
+                ),
+                const SizedBox(height: 10),
+                if (product == null) ...[
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .28),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: .45),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        color: muted.withValues(alpha: .8),
+                        size: 34,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  product.category.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 10, color: muted),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  height: 32,
-                  child: Text(
-                    product.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 70,
+                    child: Center(
+                      child: Text(
+                        'SELECT PRODUCT',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          color: muted,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '\$${product.price.toStringAsFixed(2)}',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: NexusPalette.cyan,
+                ] else ...[
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: NexusNetworkImage(
+                          imageUrl: product.image,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Text(
+                    product.category.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 10,
+                      color: muted,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: 32,
+                    child: Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '\$${product.price.toStringAsFixed(2)}',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: NexusPalette.cyan,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          Positioned(
-            top: 0,
-            left: left ? -8 : null,
-            right: left ? null : -8,
-            child: Material(
-              color: Theme.of(context).colorScheme.secondary,
-              shape: const CircleBorder(),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () =>
-                    showNexusToast(context, 'ITEM REMOVED FROM COMPARISON'),
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: .55),
+          if (product != null)
+            Positioned(
+              top: 0,
+              left: left ? -8 : null,
+              right: left ? null : -8,
+              child: Material(
+                color: Theme.of(context).colorScheme.secondary,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    controller.removeCompareProduct(slot);
+                    showNexusToast(context, 'ITEM REMOVED FROM COMPARISON');
+                  },
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).dividerColor.withValues(alpha: .55),
+                      ),
                     ),
+                    child: Icon(Icons.close, size: 14, color: muted),
                   ),
-                  child: Icon(Icons.close, size: 14, color: muted),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -590,26 +689,28 @@ class CompareScreen extends StatelessWidget {
   Widget _specRow(
     BuildContext context,
     _CompareSpec spec,
-    Product p1,
-    Product p2, {
+    Product? p1,
+    Product? p2, {
     required bool isLast,
   }) {
     final muted = NexusPalette.textMuted(context);
     final v1 = _value(p1, spec.key);
     final v2 = _value(p2, spec.key);
-    final winner = spec.isNumber
+    final different = v1 != null && v2 != null && '$v1' != '$v2';
+    final winner = spec.isNumber && p1 != null && p2 != null
         ? _winner(v1, v2, lowerIsBetter: spec.lowerIsBetter)
         : 0;
 
     Widget valueCell(dynamic value, int side) {
       final isWinner = winner == side;
+      final isDiff = different && !spec.isNumber;
       final tone = side == 1 ? NexusPalette.cyan : NexusPalette.magenta;
       final text = _displayValue(value, spec.key);
 
       return Expanded(
         child: Container(
-          padding: EdgeInsets.only(bottom: isWinner ? 4 : 0),
-          decoration: isWinner
+          padding: EdgeInsets.only(bottom: isWinner || isDiff ? 4 : 0),
+          decoration: isWinner || isDiff
               ? BoxDecoration(
                   border: Border(bottom: BorderSide(color: tone, width: 1)),
                 )
@@ -619,8 +720,12 @@ class CompareScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: GoogleFonts.jetBrainsMono(
               fontSize: 12,
-              fontWeight: isWinner ? FontWeight.bold : FontWeight.normal,
-              color: isWinner ? tone : Theme.of(context).colorScheme.onSurface,
+              fontWeight: isWinner || isDiff
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+              color: isWinner || isDiff
+                  ? tone
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -645,7 +750,8 @@ class CompareScreen extends StatelessWidget {
             style: GoogleFonts.jetBrainsMono(
               fontSize: 10,
               letterSpacing: 2.4,
-              color: muted,
+              color: different ? NexusPalette.cyan : muted,
+              fontWeight: different ? FontWeight.bold : FontWeight.normal,
             ),
             textAlign: TextAlign.center,
           ),
@@ -669,10 +775,10 @@ class CompareScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p1 = featuredProducts.first;
-    final p2 = featuredProducts.length > 1
-        ? featuredProducts[1]
-        : featuredProducts.first;
+    final controller = context.watch<NexusController>();
+    final compared = controller.compareProducts;
+    final p1 = compared[0];
+    final p2 = compared[1];
     final surface = Theme.of(context).colorScheme.surface;
 
     return Column(
@@ -701,9 +807,9 @@ class CompareScreen extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _compareProductCard(context, p1, left: true),
+              _compareProductCard(context, controller, slot: 0, product: p1),
               const SizedBox(width: 16),
-              _compareProductCard(context, p2, left: false),
+              _compareProductCard(context, controller, slot: 1, product: p2),
             ],
           ),
         ),
@@ -738,6 +844,57 @@ class CompareScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CompareProductSelector extends StatelessWidget {
+  const _CompareProductSelector({required this.value, required this.onChanged});
+
+  final String? value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = NexusPalette.textMuted(context);
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Theme.of(context).colorScheme.secondary.withValues(alpha: .72),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: .45),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          hint: Text(
+            'Select',
+            style: GoogleFonts.jetBrainsMono(fontSize: 11, color: muted),
+          ),
+          dropdownColor: Theme.of(context).colorScheme.surface,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: muted),
+          items: allCatalogProducts
+              .map(
+                (product) => DropdownMenuItem(
+                  value: product.id,
+                  child: Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: (id) {
+            if (id != null) onChanged(id);
+          },
+        ),
+      ),
     );
   }
 }

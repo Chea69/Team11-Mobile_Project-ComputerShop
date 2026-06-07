@@ -7,7 +7,6 @@ import '../models/view_state.dart';
 
 class NexusController extends ChangeNotifier {
   NexusController(this._prefs) {
-    currentView = ViewState.home;
     cart.addAll([
       CartItem(
         id: 'cart-1',
@@ -40,16 +39,25 @@ class NexusController extends ChangeNotifier {
   }
 
   static const String kHasSeenOnboarding = 'hasSeenOnboarding';
+  static const String kSessionName = 'sessionName';
+  static const String kSessionEmail = 'sessionEmail';
   final SharedPreferences _prefs;
 
   bool isDarkTheme = true;
-  ViewState currentView = ViewState.onboarding;
+  ViewState currentView = ViewState.splash;
   Map<String, dynamic>? viewParams;
+  NexusUser? currentUser;
 
   final List<CartItem> cart = [];
   List<String> favorites = [];
+  final List<String?> compareProductIds = [
+    featuredProducts.first.id,
+    featuredProducts.length > 1 ? featuredProducts[1].id : null,
+  ];
   final List<BuilderState> savedBuilds = [];
   final List<NotificationEntry> notifications = [];
+
+  bool get isSignedIn => currentUser != null;
 
   int get cartCount => cart.fold(0, (a, item) => a + item.qty);
 
@@ -60,6 +68,43 @@ class NexusController extends ChangeNotifier {
       notifications.where((n) => !n.read).length;
 
   Brightness get brightness => isDarkTheme ? Brightness.dark : Brightness.light;
+
+  List<Product?> get compareProducts =>
+      compareProductIds.map(productById).toList(growable: false);
+
+  Future<void> signIn({required String email, required String password}) async {
+    final normalizedEmail = email.trim().isEmpty
+        ? 'demo@nexus.local'
+        : email.trim();
+    final user = NexusUser(
+      name: _nameFromEmail(normalizedEmail),
+      email: normalizedEmail,
+    );
+    currentUser = user;
+    await _persistSession(user);
+    notifyListeners();
+  }
+
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final user = NexusUser(
+      name: name.trim().isEmpty ? 'Nexus Insider' : name.trim(),
+      email: email.trim().isEmpty ? 'member@nexus.local' : email.trim(),
+    );
+    currentUser = user;
+    await _persistSession(user);
+    notifyListeners();
+  }
+
+  Future<void> signOut() async {
+    currentUser = null;
+    await _prefs.remove(kSessionName);
+    await _prefs.remove(kSessionEmail);
+    navigate(ViewState.login);
+  }
 
   void toggleTheme() {
     isDarkTheme = !isDarkTheme;
@@ -72,14 +117,18 @@ class NexusController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void completeSplash() {
+    navigate(ViewState.onboarding);
+  }
+
   Future<void> finishOnboarding() async {
     await _prefs.setBool(kHasSeenOnboarding, true);
-    navigate(ViewState.home);
+    navigate(ViewState.login);
   }
 
   Future<void> skipOnboarding() async {
     await _prefs.setBool(kHasSeenOnboarding, true);
-    navigate(ViewState.home);
+    navigate(ViewState.login);
   }
 
   Product? featuredById(String? id) {
@@ -94,6 +143,26 @@ class NexusController extends ChangeNotifier {
         return featuredProducts.first;
       }
     }
+  }
+
+  Product? productById(String? id) {
+    if (id == null || id.isEmpty) return null;
+    for (final product in allCatalogProducts) {
+      if (product.id == id) return product;
+    }
+    return null;
+  }
+
+  void setCompareProduct(int slot, String productId) {
+    if (slot < 0 || slot >= compareProductIds.length) return;
+    compareProductIds[slot] = productId;
+    notifyListeners();
+  }
+
+  void removeCompareProduct(int slot) {
+    if (slot < 0 || slot >= compareProductIds.length) return;
+    compareProductIds[slot] = null;
+    notifyListeners();
   }
 
   void addToCart(NewCartPayload payload) {
@@ -146,8 +215,19 @@ class NexusController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeFavorite(String productId) {
+    favorites.remove(productId);
+    notifyListeners();
+  }
+
   void saveBuild(BuilderState build) {
     savedBuilds.add(build.copy());
+    notifyListeners();
+  }
+
+  void removeSavedBuildAt(int index) {
+    if (index < 0 || index >= savedBuilds.length) return;
+    savedBuilds.removeAt(index);
     notifyListeners();
   }
 
@@ -231,6 +311,39 @@ class NexusController extends ChangeNotifier {
 
   String _randomId() =>
       Random().nextInt(1 << 32).toRadixString(16).padLeft(8, '0');
+
+  Future<void> _persistSession(NexusUser user) async {
+    await _prefs.setString(kSessionName, user.name);
+    await _prefs.setString(kSessionEmail, user.email);
+  }
+
+  String _nameFromEmail(String email) {
+    final local = email.split('@').first.trim();
+    if (local.isEmpty) return 'Nexus Insider';
+    return local
+        .split(RegExp(r'[._-]+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+}
+
+class NexusUser {
+  const NexusUser({required this.name, required this.email});
+
+  final String name;
+  final String email;
+
+  String get initials {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return 'NX';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
 }
 
 class NewCartPayload {

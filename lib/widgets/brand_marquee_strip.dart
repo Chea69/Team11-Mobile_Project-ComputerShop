@@ -123,7 +123,12 @@ class _InfiniteBrandMarqueeState extends State<InfiniteBrandMarquee>
     final seg = _segmentPx;
     if (seg <= 0) return;
 
-    final stamp = _stamp ?? now;
+    final stamp = _stamp;
+    if (stamp == null) {
+      _stamp = now;
+      return;
+    }
+
     final dtMicros = (now - stamp).inMicroseconds;
     if (dtMicros < 33000) return;
     _stamp = now;

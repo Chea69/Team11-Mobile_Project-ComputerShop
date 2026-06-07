@@ -35,6 +35,130 @@ class AuthBackground extends StatelessWidget {
   }
 }
 
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key, required this.controller});
+
+  final NexusController controller;
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(
+      const Duration(milliseconds: 1400),
+      widget.controller.completeSplash,
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: NexusPalette.frameOuter,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0, -0.18),
+                radius: 0.62,
+                colors: [
+                  NexusPalette.cyan.withValues(alpha: .13),
+                  NexusPalette.frameOuter,
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                children: [
+                  const Spacer(flex: 4),
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeOutBack,
+                    tween: Tween(begin: .72, end: 1),
+                    builder: (context, scale, child) =>
+                        Transform.scale(scale: scale, child: child),
+                    child: Container(
+                      width: 128,
+                      height: 128,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: NexusPalette.darkSurface,
+                        border: Border.all(
+                          color: NexusPalette.cyan.withValues(alpha: .35),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: NexusPalette.cyan.withValues(alpha: .22),
+                            blurRadius: 34,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.memory_rounded,
+                        color: NexusPalette.cyan,
+                        size: 52,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  const GradientTitle(
+                    'NEXUS',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'POWERING YOUR NEXT BUILD',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: const Color(0xFF94A3B8),
+                      fontSize: 11,
+                      letterSpacing: 2.2,
+                    ),
+                  ),
+                  const Spacer(flex: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const SizedBox(
+                      width: 112,
+                      child: LinearProgressIndicator(
+                        minHeight: 3,
+                        color: NexusPalette.cyan,
+                        backgroundColor: NexusPalette.darkSurfaceLight,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 34),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class OnboardingCarousel extends StatefulWidget {
   const OnboardingCarousel({super.key, required this.controller});
 
@@ -59,6 +183,8 @@ class _SlideSpec {
 }
 
 class _OnboardingCarouselState extends State<OnboardingCarousel> {
+  final PageController _pageController = PageController();
+
   final steps = [
     _SlideSpec(
       title: 'BUILD WITHOUT LIMITS',
@@ -83,140 +209,156 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
   int step = 0;
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _next() async {
+    if (step == steps.length - 1) {
+      await widget.controller.finishOnboarding();
+      return;
+    }
+
+    await _pageController.nextPage(
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final slide = steps[step];
     return AuthBackground(
       child: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Positioned(
-              top: 0,
-              right: 12,
-              child: TextButton(
-                onPressed: () => unawaited(widget.controller.skipOnboarding()),
-                child: Text(
-                  'SKIP',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 11),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4, right: 12),
+                child: TextButton(
+                  onPressed: () =>
+                      unawaited(widget.controller.skipOnboarding()),
+                  child: Text(
+                    'SKIP',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ),
-            Positioned.fill(
-              child: LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(24, 52, 24, 36),
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 260),
-                          child: Column(
-                            key: ValueKey(step),
-                            children: [
-                              Container(
-                                width: 132,
-                                height: 132,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: slide.color.withValues(alpha: .4),
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: steps.length,
+                onPageChanged: (index) => setState(() => step = index),
+                itemBuilder: (context, index) {
+                  final item = steps[index];
+                  return LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 136,
+                              height: 136,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: item.color.withValues(alpha: .34),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    blurRadius: 28,
+                                    color: item.color.withValues(alpha: .2),
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      blurRadius: 24,
-                                      color: slide.color.withValues(alpha: .25),
-                                    ),
-                                  ],
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.surface.withValues(alpha: 0.7),
-                                ),
-                                child: Icon(
-                                  slide.icon,
-                                  size: 48,
-                                  color: slide.color,
+                                ],
+                                color: NexusPalette.darkSurface.withValues(
+                                  alpha: .88,
                                 ),
                               ),
-                              const SizedBox(height: 24),
-                              GradientTitle(
-                                slide.title,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleLarge!.copyWith(fontSize: 22),
+                              child: Icon(
+                                item.icon,
+                                size: 48,
+                                color: item.color,
                               ),
-                              const SizedBox(height: 14),
-                              Text(
-                                slide.body,
+                            ),
+                            const SizedBox(height: 28),
+                            GradientTitle(
+                              item.title,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleLarge!.copyWith(fontSize: 22),
+                            ),
+                            const SizedBox(height: 14),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 330),
+                              child: Text(
+                                item.body,
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
-                                      height: 1.35,
+                                      height: 1.45,
                                       color: Theme.of(context)
                                           .textTheme
                                           .bodyMedium
                                           ?.color
-                                          ?.withValues(alpha: .75),
+                                          ?.withValues(alpha: .82),
                                     ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 40),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(3, (i) {
-                            final active = step == i;
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 260),
-                              width: active ? 24 : 8,
-                              height: 8,
-                              margin: const EdgeInsets.symmetric(horizontal: 6),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: active
-                                    ? slide.color
-                                    : Theme.of(context).dividerColor,
-                                boxShadow: active
-                                    ? [
-                                        BoxShadow(
-                                          blurRadius: 14,
-                                          color: slide.color.withValues(
-                                            alpha: .36,
-                                          ),
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 36),
-                        GradientRgbButton(
-                          onPressed: () async {
-                            if (step == 2) {
-                              await widget.controller.finishOnboarding();
-                            } else {
-                              setState(() => step += 1);
-                            }
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(step == 2 ? 'GET STARTED' : 'NEXT'),
-                              const SizedBox(width: 6),
-                              const Icon(Icons.chevron_right),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
+                  );
+                },
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(steps.length, (i) {
+                final active = step == i;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 260),
+                  width: active ? 24 : 8,
+                  height: 7,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: active ? slide.color : NexusPalette.darkSurfaceLight,
+                    boxShadow: active
+                        ? [
+                            BoxShadow(
+                              blurRadius: 12,
+                              color: slide.color.withValues(alpha: .36),
+                            ),
+                          ]
+                        : null,
                   ),
+                );
+              }),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 30, 24, 28),
+              child: GradientRgbButton(
+                onPressed: _next,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(step == steps.length - 1 ? 'GET STARTED' : 'NEXT'),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.chevron_right),
+                  ],
                 ),
               ),
             ),
@@ -309,6 +451,10 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: () async {
                 setState(() => loading = true);
                 await Future<void>.delayed(const Duration(milliseconds: 1200));
+                await store.signIn(
+                  email: _email.text,
+                  password: _password.text,
+                );
                 if (!context.mounted) return;
                 setState(() => loading = false);
                 showNexusToast(context, 'SIGNED IN');
@@ -344,8 +490,15 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () =>
-                        showNexusToast(context, 'GOOGLE SSO — DEMO BUILD'),
+                    onPressed: () async {
+                      await store.signIn(
+                        email: 'google.demo@nexus.local',
+                        password: 'sso',
+                      );
+                      if (!context.mounted) return;
+                      showNexusToast(context, 'GOOGLE SSO - DEMO BUILD');
+                      store.navigate(ViewState.home);
+                    },
                     child: Text(
                       'GOOGLE',
                       style: GoogleFonts.jetBrainsMono(fontSize: 11),
@@ -355,8 +508,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () =>
-                        showNexusToast(context, 'APPLE SSO — DEMO BUILD'),
+                    onPressed: () async {
+                      await store.signIn(
+                        email: 'apple.demo@nexus.local',
+                        password: 'sso',
+                      );
+                      if (!context.mounted) return;
+                      showNexusToast(context, 'APPLE SSO - DEMO BUILD');
+                      store.navigate(ViewState.home);
+                    },
                     child: Text(
                       'APPLE',
                       style: GoogleFonts.jetBrainsMono(fontSize: 11),
@@ -527,6 +687,11 @@ class _SignupScreenState extends State<SignupScreen> {
               onPressed: () async {
                 setState(() => loading = true);
                 await Future<void>.delayed(const Duration(milliseconds: 1500));
+                await store.register(
+                  name: _name.text,
+                  email: _email.text,
+                  password: _password.text,
+                );
                 if (!context.mounted) return;
                 setState(() => loading = false);
                 showNexusToast(context, 'WELCOME TO NEXUS');
