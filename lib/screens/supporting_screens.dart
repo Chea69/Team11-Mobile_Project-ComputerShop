@@ -1056,7 +1056,9 @@ class SavedAddressesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = context.read<NexusController>();
-    final muted = Theme.of(context).dividerColor.withValues(alpha: .65);
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: .78);
 
     final list = [
       (
@@ -1987,10 +1989,14 @@ class _RepairBookingExperienceState extends State<RepairBookingScreen> {
                   final active = service == option;
                   return ChoiceChip(
                     selected: active,
-                    label: Text(
-                      option,
-                      style: GoogleFonts.jetBrainsMono(fontSize: 10),
+                    labelStyle: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      color: active
+                          ? Theme.of(context).colorScheme.onSurface
+                          : muted,
+                      fontWeight: active ? FontWeight.bold : FontWeight.w500,
                     ),
+                    label: Text(option),
                     selectedColor: NexusPalette.cyan.withValues(alpha: .16),
                     side: BorderSide(
                       color: active
@@ -2423,8 +2429,360 @@ class _TechChatScreenState extends State<TechChatScreen> {
   }
 }
 
-class CommunityReviewsScreen extends StatelessWidget {
+class CommunityReviewsScreen extends StatefulWidget {
   const CommunityReviewsScreen({super.key});
+
+  @override
+  State<CommunityReviewsScreen> createState() => _CommunityReviewsScreenState();
+}
+
+class _ReviewEntry {
+  const _ReviewEntry({
+    required this.handle,
+    required this.rating,
+    required this.tag,
+    required this.productId,
+    required this.product,
+    required this.body,
+    required this.date,
+    required this.verified,
+  });
+
+  final String handle;
+  final double rating;
+  final String tag;
+  final String productId;
+  final String product;
+  final String body;
+  final String date;
+  final bool verified;
+}
+
+class _CommunityReviewsScreenState extends State<CommunityReviewsScreen> {
+  String filter = 'All';
+
+  static const filters = ['All', 'Gaming', 'Office', 'Design', 'Student'];
+
+  static const reviews = [
+    _ReviewEntry(
+      handle: 'NebulaFam',
+      rating: 5,
+      tag: 'Design',
+      productId: 'p1',
+      product: 'Nebula X9 Creator Pro',
+      body:
+          'Renders Blender scenes fast and stays quiet enough for voiceover work.',
+      date: 'Jun 02',
+      verified: true,
+    ),
+    _ReviewEntry(
+      handle: 'Travel Ops',
+      rating: 4,
+      tag: 'Gaming',
+      productId: 'p2',
+      product: 'Blade 16 Gaming Laptop',
+      body: 'High refresh panel is excellent, and thermals hold up in ranked.',
+      date: 'May 28',
+      verified: true,
+    ),
+    _ReviewEntry(
+      handle: 'Studio Desk',
+      rating: 5,
+      tag: 'Office',
+      productId: 'p1',
+      product: 'Nebula X9 Creator Pro',
+      body: 'Three-display workflow, silent fan curve, and fast support setup.',
+      date: 'May 17',
+      verified: true,
+    ),
+    _ReviewEntry(
+      handle: 'Dorm Build',
+      rating: 4,
+      tag: 'Student',
+      productId: 'p2',
+      product: 'Blade 16 Gaming Laptop',
+      body: 'Portable enough for class and powerful enough for CAD projects.',
+      date: 'May 10',
+      verified: false,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = context.read<NexusController>();
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: .78);
+    final surface = Theme.of(context).colorScheme.surface;
+    final visible = filter == 'All'
+        ? reviews
+        : reviews.where((review) => review.tag == filter).toList();
+    final avg =
+        reviews.fold<double>(0, (sum, review) => sum + review.rating) /
+        reviews.length;
+
+    int countFor(int stars) =>
+        reviews.where((review) => review.rating.round() == stars).length;
+
+    Widget stars(double rating) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(
+        5,
+        (index) => Icon(
+          index < rating.round()
+              ? Icons.star_rounded
+              : Icons.star_border_rounded,
+          size: 17,
+          color: NexusPalette.magenta,
+        ),
+      ),
+    );
+
+    return Column(
+      children: [
+        _NexusStickyHeader(
+          title: 'REVIEWS',
+          onBack: () => ctrl.navigate(ViewState.more),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 112),
+            children: [
+              BorderGradientPanel(
+                radius: 20,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              avg.toStringAsFixed(1),
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 42,
+                                fontWeight: FontWeight.bold,
+                                color: NexusPalette.cyan,
+                              ),
+                            ),
+                            stars(avg),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${reviews.length} CUSTOMER REVIEWS',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10,
+                                letterSpacing: 1.5,
+                                color: muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            for (final star in [5, 4, 3, 2, 1])
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 28,
+                                      child: Text(
+                                        '$star',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 10,
+                                          color: muted,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          value:
+                                              countFor(star) / reviews.length,
+                                          minHeight: 6,
+                                          backgroundColor: muted.withValues(
+                                            alpha: .16,
+                                          ),
+                                          valueColor:
+                                              const AlwaysStoppedAnimation(
+                                                NexusPalette.magenta,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${countFor(star)}',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 10,
+                                        color: muted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: filters.map((option) {
+                  final active = option == filter;
+                  return ChoiceChip(
+                    selected: active,
+                    labelStyle: GoogleFonts.jetBrainsMono(
+                      fontSize: 10,
+                      color: active
+                          ? Theme.of(context).colorScheme.onSurface
+                          : muted,
+                      fontWeight: active ? FontWeight.bold : FontWeight.w500,
+                    ),
+                    label: Text(option),
+                    selectedColor: NexusPalette.cyan.withValues(alpha: .16),
+                    side: BorderSide(
+                      color: active
+                          ? NexusPalette.cyan
+                          : muted.withValues(alpha: .55),
+                    ),
+                    onSelected: (_) => setState(() => filter = option),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 18),
+              ...visible.map(
+                (review) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Material(
+                    color: surface.withValues(alpha: .86),
+                    borderRadius: BorderRadius.circular(18),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => ctrl.navigate(
+                        ViewState.product,
+                        params: {'id': review.productId},
+                      ),
+                      child: Ink(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: muted.withValues(alpha: .28),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: NexusPalette.cyan.withValues(
+                                    alpha: .16,
+                                  ),
+                                  child: Text(
+                                    review.handle.substring(0, 1),
+                                    style: GoogleFonts.jetBrainsMono(
+                                      color: NexusPalette.cyan,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        review.handle,
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${review.product} - ${review.date}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(color: muted),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            stars(review.rating),
+                            const SizedBox(height: 14),
+                            Text(
+                              review.body,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(height: 1.35),
+                            ),
+                            const SizedBox(height: 14),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Chip(
+                                  visualDensity: VisualDensity.compact,
+                                  label: Text(
+                                    review.tag.toUpperCase(),
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 9,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                                if (review.verified)
+                                  Icon(
+                                    Icons.verified_rounded,
+                                    size: 18,
+                                    color: Colors.lightGreenAccent.shade400,
+                                  ),
+                                Text(
+                                  'VIEW GEAR',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 10,
+                                    color: NexusPalette.cyan,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class LegacyCommunityReviewsScreen extends StatelessWidget {
+  const LegacyCommunityReviewsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -2512,6 +2870,450 @@ class CommunityReviewsScreen extends StatelessWidget {
 class ShowcaseMediaScreen extends StatelessWidget {
   const ShowcaseMediaScreen({super.key});
 
+  void _openMedia(BuildContext context, _ShowcaseMediaItem item) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _FullscreenMediaViewer(item: item),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = context.read<NexusController>();
+    final muted = Theme.of(context).dividerColor.withValues(alpha: .65);
+
+    final builds = [
+      _ShowcaseMediaItem(
+        title: 'Neon Phantom Showcase',
+        subtitle: 'Build of the month - liquid cooled gaming tower',
+        image: buildOfTheMonthProduct.image,
+        isVideo: false,
+        duration: null,
+      ),
+      ...featuredProducts.map(
+        (product) => _ShowcaseMediaItem(
+          title: product.name,
+          subtitle: '${product.category} gallery - community featured build',
+          image: product.image,
+          isVideo: false,
+          duration: null,
+        ),
+      ),
+    ];
+
+    final tutorials = [
+      _ShowcaseMediaItem(
+        title: 'Cable Management Masterclass',
+        subtitle: 'Route front-panel, GPU, and PSU cables cleanly',
+        image: MockImages.desktop,
+        isVideo: true,
+        duration: '08:42',
+      ),
+      _ShowcaseMediaItem(
+        title: 'Thermal Paste and Fan Curve Setup',
+        subtitle: 'Quiet performance tuning after a repair pickup',
+        image: MockImages.chip,
+        isVideo: true,
+        duration: '06:18',
+      ),
+      _ShowcaseMediaItem(
+        title: 'Laptop Upgrade Walkthrough',
+        subtitle: 'RAM, NVMe, and recovery image checklist',
+        image: MockImages.laptop,
+        isVideo: true,
+        duration: '11:05',
+      ),
+    ];
+
+    Widget sectionTitle(String title) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: 11,
+          letterSpacing: 2,
+          color: muted,
+        ),
+      ),
+    );
+
+    return Column(
+      children: [
+        _NexusStickyHeader(
+          title: 'SHOWCASE',
+          onBack: () => ctrl.navigate(ViewState.more),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 112),
+            children: [
+              sectionTitle('FEATURED BUILDS'),
+              SizedBox(
+                height: 260,
+                child: PageView.builder(
+                  controller: PageController(viewportFraction: .88),
+                  padEnds: false,
+                  itemCount: builds.length,
+                  itemBuilder: (context, index) {
+                    final item = builds[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 14),
+                      child: _ShowcaseBuildCard(
+                        item: item,
+                        onTap: () => _openMedia(context, item),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 26),
+              sectionTitle('TUTORIALS'),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: tutorials.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: .82,
+                ),
+                itemBuilder: (context, index) {
+                  final item = tutorials[index];
+                  return _TutorialThumb(
+                    item: item,
+                    onTap: () => _openMedia(context, item),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              BorderGradientPanel(
+                radius: 18,
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.live_tv_rounded,
+                        color: NexusPalette.cyan,
+                        size: 30,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'LIVE PODCAST RIG',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              'Neo Central Sunday stream setup breakdown',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(color: muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _openMedia(context, tutorials.first),
+                        icon: const Icon(Icons.play_circle_fill_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShowcaseMediaItem {
+  const _ShowcaseMediaItem({
+    required this.title,
+    required this.subtitle,
+    required this.image,
+    required this.isVideo,
+    required this.duration,
+  });
+
+  final String title;
+  final String subtitle;
+  final String image;
+  final bool isVideo;
+  final String? duration;
+}
+
+class _ShowcaseBuildCard extends StatelessWidget {
+  const _ShowcaseBuildCard({required this.item, required this.onTap});
+
+  final _ShowcaseMediaItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Ink(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              NexusNetworkImage(imageUrl: item.image, fit: BoxFit.cover),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.center,
+                    colors: [
+                      Colors.black.withValues(alpha: .72),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 14,
+                right: 14,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: .52),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.fullscreen_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 18,
+                right: 18,
+                bottom: 18,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TutorialThumb extends StatelessWidget {
+  const _TutorialThumb({required this.item, required this.onTap});
+
+  final _ShowcaseMediaItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: .78);
+    final surface = Theme.of(context).colorScheme.surface;
+    return Material(
+      color: surface.withValues(alpha: .86),
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: muted.withValues(alpha: .32)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    NexusNetworkImage(imageUrl: item.image, fit: BoxFit.cover),
+                    Center(
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withValues(alpha: .62),
+                          border: Border.all(color: Colors.white54),
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                    if (item.duration != null)
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: .78),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            child: Text(
+                              item.duration!,
+                              style: GoogleFonts.jetBrainsMono(
+                                color: Colors.white,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FullscreenMediaViewer extends StatelessWidget {
+  const _FullscreenMediaViewer({required this.item});
+
+  final _ShowcaseMediaItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: InteractiveViewer(
+                minScale: 1,
+                maxScale: 3.2,
+                child: NexusNetworkImage(
+                  imageUrl: item.image,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            if (item.isVideo)
+              Center(
+                child: Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withValues(alpha: .58),
+                    border: Border.all(color: Colors.white54),
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 54,
+                  ),
+                ),
+              ),
+            Positioned(
+              left: 18,
+              right: 18,
+              bottom: 22,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.subtitle,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton.filled(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LegacyShowcaseMediaScreen extends StatelessWidget {
+  const LegacyShowcaseMediaScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final ctrl = context.read<NexusController>();
@@ -2595,6 +3397,343 @@ class ShowcaseMediaScreen extends StatelessWidget {
 
 class RepairTimelineScreen extends StatelessWidget {
   const RepairTimelineScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = context.watch<NexusController>();
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: .78);
+    final ticket = ctrl.lastBookingTicket;
+    final ticketId = ticket?.ticketId ?? 'RT-88412';
+    final service = ticket?.serviceType ?? 'GPU hybrid swap';
+    final device = ticket?.deviceModel ?? 'Nebula X9 Creator Pro';
+    final slot = ticket == null
+        ? 'Pickup window: Jun 12, 16:00'
+        : 'Intake: Jun ${ticket.slot.day}, ${ticket.timeSlot}';
+    final currentIndex = ticket == null ? 2 : 1;
+
+    final steps = [
+      (
+        status: 'Received',
+        detail: 'Device checked in and tagged at service counter.',
+        time: '09:12',
+        icon: Icons.inventory_2_outlined,
+      ),
+      (
+        status: 'Diagnosing',
+        detail: 'Bench diagnostics running: thermals, storage, and power.',
+        time: '10:40',
+        icon: Icons.manage_search_rounded,
+      ),
+      (
+        status: 'Repairing',
+        detail: 'Parts allocated and technician work order is active.',
+        time: 'In progress',
+        icon: Icons.construction_rounded,
+      ),
+      (
+        status: 'Ready',
+        detail: 'QA pass complete and pickup notification queued.',
+        time: 'Pending',
+        icon: Icons.task_alt_rounded,
+      ),
+      (
+        status: 'Collected',
+        detail: 'Customer pickup and closeout receipt completed.',
+        time: 'Pending',
+        icon: Icons.shopping_bag_outlined,
+      ),
+    ];
+
+    return Column(
+      children: [
+        _NexusStickyHeader(
+          title: 'REPAIR TRACK',
+          onBack: () => ctrl.navigate(ViewState.more),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 112),
+            children: [
+              BorderGradientPanel(
+                radius: 20,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              ticketId,
+                              style: GoogleFonts.jetBrainsMono(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: NexusPalette.cyan.withValues(alpha: .13),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              child: Text(
+                                steps[currentIndex].status.toUpperCase(),
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 9,
+                                  letterSpacing: 1.5,
+                                  color: NexusPalette.cyan,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        device,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$service - $slot',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: muted),
+                      ),
+                      const SizedBox(height: 18),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: (currentIndex + 1) / steps.length,
+                          minHeight: 8,
+                          backgroundColor: muted.withValues(alpha: .16),
+                          valueColor: const AlwaysStoppedAnimation(
+                            NexusPalette.cyan,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              _capsLabel(context, muted, 'TRACKING INFORMATION'),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: muted.withValues(alpha: .45)),
+                ),
+                child: Column(
+                  children: [
+                    _RepairInfoRow(
+                      icon: Icons.person_outline_rounded,
+                      label: 'Bench lead',
+                      value: 'Mara Chen',
+                    ),
+                    _RepairInfoRow(
+                      icon: Icons.place_outlined,
+                      label: 'Service bay',
+                      value: 'Orion Repair Bar - Bay 04',
+                    ),
+                    _RepairInfoRow(
+                      icon: Icons.schedule_rounded,
+                      label: 'ETA',
+                      value: currentIndex >= 3
+                          ? 'Ready for pickup'
+                          : '36h service window',
+                    ),
+                    _RepairInfoRow(
+                      icon: Icons.confirmation_number_outlined,
+                      label: 'Tracking code',
+                      value: '$ticketId-NX',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              _capsLabel(context, muted, 'STATUS UPDATES'),
+              for (var i = 0; i < steps.length; i++)
+                _RepairTimelineStep(
+                  title: steps[i].status,
+                  detail: steps[i].detail,
+                  time: steps[i].time,
+                  icon: steps[i].icon,
+                  complete: i < currentIndex,
+                  active: i == currentIndex,
+                  isLast: i == steps.length - 1,
+                ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => ctrl.navigate(ViewState.chat),
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                label: Text(
+                  'OPEN TECH CHAT',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RepairInfoRow extends StatelessWidget {
+  const _RepairInfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: .78);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: NexusPalette.cyan),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: muted),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RepairTimelineStep extends StatelessWidget {
+  const _RepairTimelineStep({
+    required this.title,
+    required this.detail,
+    required this.time,
+    required this.icon,
+    required this.complete,
+    required this.active,
+    required this.isLast,
+  });
+
+  final String title;
+  final String detail;
+  final String time;
+  final IconData icon;
+  final bool complete;
+  final bool active;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: .78);
+    final color = active
+        ? NexusPalette.cyan
+        : complete
+        ? Colors.lightGreenAccent.shade400
+        : muted;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: active || complete ? .16 : .06),
+                border: Border.all(color: color, width: 1.4),
+              ),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            if (!isLast)
+              Container(
+                width: 1,
+                height: 54,
+                color: color.withValues(alpha: .35),
+              ),
+          ],
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontWeight: active || complete
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: active || complete ? null : muted,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      time,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10,
+                        color: active ? NexusPalette.cyan : muted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  detail,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: muted),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class LegacyRepairTimelineScreen extends StatelessWidget {
+  const LegacyRepairTimelineScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
