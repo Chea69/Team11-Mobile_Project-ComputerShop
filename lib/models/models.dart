@@ -25,6 +25,56 @@ class CartConfigOptions {
   final String? storage;
 }
 
+class CheckoutConfirmation {
+  CheckoutConfirmation({
+    required this.orderId,
+    required this.itemCount,
+    required this.subtotal,
+    required this.discount,
+    required this.shipping,
+    required this.tax,
+    required this.total,
+    required this.deliveryWindow,
+    required this.paymentLabel,
+  });
+
+  final String orderId;
+  final int itemCount;
+  final double subtotal;
+  final double discount;
+  final double shipping;
+  final double tax;
+  final double total;
+  final String deliveryWindow;
+  final String paymentLabel;
+}
+
+class BookingTicket {
+  BookingTicket({
+    required this.ticketId,
+    required this.deviceType,
+    required this.deviceModel,
+    required this.serialNumber,
+    required this.serviceType,
+    required this.serviceNotes,
+    required this.slot,
+    required this.timeSlot,
+    required this.priority,
+    required this.estimatedFee,
+  });
+
+  final String ticketId;
+  final String deviceType;
+  final String deviceModel;
+  final String serialNumber;
+  final String serviceType;
+  final String serviceNotes;
+  final DateTime slot;
+  final String timeSlot;
+  final String priority;
+  final double estimatedFee;
+}
+
 class NotificationEntry {
   NotificationEntry({
     required this.id,

@@ -56,6 +56,9 @@ class NexusController extends ChangeNotifier {
   ];
   final List<BuilderState> savedBuilds = [];
   final List<NotificationEntry> notifications = [];
+  String? activeCouponCode;
+  CheckoutConfirmation? lastCheckoutConfirmation;
+  BookingTicket? lastBookingTicket;
 
   bool get isSignedIn => currentUser != null;
 
@@ -63,6 +66,29 @@ class NexusController extends ChangeNotifier {
 
   double get cartSubtotal =>
       cart.fold(0, (double sum, item) => sum + item.price * item.qty);
+
+  double get cartDiscount {
+    final subtotal = cartSubtotal;
+    switch (activeCouponCode) {
+      case 'NEXUS10':
+        return (subtotal * .10).clamp(0, 250).toDouble();
+      case 'UPGRADE75':
+        return subtotal >= 799 ? 75 : 0;
+      case 'FASTPASS':
+        return 0;
+      default:
+        return 0;
+    }
+  }
+
+  double get cartShipping => cartSubtotal >= 1500 || cart.isEmpty ? 0 : 24.99;
+
+  double get cartTax {
+    final taxable = (cartSubtotal - cartDiscount).clamp(0, double.infinity);
+    return taxable.toDouble() * .08;
+  }
+
+  double get cartTotal => cartSubtotal - cartDiscount + cartShipping + cartTax;
 
   int get unreadNotificationsCount =>
       notifications.where((n) => !n.read).length;
@@ -203,6 +229,51 @@ class NexusController extends ChangeNotifier {
 
   void clearCart() {
     cart.clear();
+    activeCouponCode = null;
+    notifyListeners();
+  }
+
+  bool applyCoupon(String code) {
+    final normalized = code.trim().toUpperCase();
+    const validCodes = {'NEXUS10', 'UPGRADE75', 'FASTPASS'};
+    if (!validCodes.contains(normalized)) return false;
+    activeCouponCode = normalized;
+    notifyListeners();
+    return true;
+  }
+
+  void removeCoupon() {
+    activeCouponCode = null;
+    notifyListeners();
+  }
+
+  void placeMockOrder({
+    required String deliveryWindow,
+    required String paymentLabel,
+  }) {
+    if (cart.isEmpty) return;
+    lastCheckoutConfirmation = CheckoutConfirmation(
+      orderId: 'NX-${1000 + Random().nextInt(9000)}',
+      itemCount: cartCount,
+      subtotal: cartSubtotal,
+      discount: cartDiscount,
+      shipping: cartShipping,
+      tax: cartTax,
+      total: cartTotal,
+      deliveryWindow: deliveryWindow,
+      paymentLabel: paymentLabel,
+    );
+    cart.clear();
+    activeCouponCode = null;
+    currentView = ViewState.checkoutConfirmation;
+    viewParams = null;
+    notifyListeners();
+  }
+
+  void createBookingTicket(BookingTicket ticket) {
+    lastBookingTicket = ticket;
+    currentView = ViewState.bookingConfirmation;
+    viewParams = null;
     notifyListeners();
   }
 

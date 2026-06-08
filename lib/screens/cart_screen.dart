@@ -74,15 +74,17 @@ class CartSheet extends StatelessWidget {
     }
 
     final subtotal = controller.cartSubtotal;
-    final tax = subtotal * 0.08;
-    final total = subtotal + tax;
+    final discount = controller.cartDiscount;
+    final shipping = controller.cartShipping;
+    final tax = controller.cartTax;
+    final total = controller.cartTotal;
 
     return Stack(
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            header('CART (${controller.cart.length})'),
+            header('CART (${controller.cartCount})'),
             Expanded(
               child: ListView.builder(
                 physics: const ClampingScrollPhysics(
@@ -101,6 +103,25 @@ class CartSheet extends StatelessWidget {
                             label: 'Subtotal',
                             amount: subtotal,
                             muted: muted,
+                          ),
+                          if (discount > 0) ...[
+                            const SizedBox(height: 8),
+                            _TotalsRow(
+                              label:
+                                  'Coupon ${controller.activeCouponCode ?? ''}',
+                              amount: -discount,
+                              muted: muted,
+                              emphasized: Colors.lightGreenAccent,
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          _TotalsRow(
+                            label: shipping == 0 ? 'Shipping' : 'Courier',
+                            amount: shipping,
+                            muted: muted,
+                            emphasized: shipping == 0
+                                ? Colors.lightGreenAccent
+                                : null,
                           ),
                           const SizedBox(height: 8),
                           _TotalsRow(
@@ -303,35 +324,63 @@ class _CartLine extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 10),
-                Text(
-                  '\$ ${CartSheet.cents(item.price)}',
-                  style: GoogleFonts.jetBrainsMono(
-                    color: NexusPalette.cyan,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      '\$ ${CartSheet.cents(item.price * item.qty)}',
+                      style: GoogleFonts.jetBrainsMono(
+                        color: NexusPalette.cyan,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (item.qty > 1) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '@ \$${CartSheet.cents(item.price)}',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          color: border,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
           ),
           Column(
             children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: onDecrease,
-                    icon: const Icon(Icons.remove),
-                  ),
-                  Text(
-                    '${item.qty}',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontWeight: FontWeight.bold,
+              Container(
+                height: 38,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onDecrease,
+                      icon: const Icon(Icons.remove, size: 18),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: onIncrease,
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        '${item.qty}',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onIncrease,
+                      icon: const Icon(Icons.add, size: 18),
+                    ),
+                  ],
+                ),
               ),
               IconButton(
                 onPressed: onDelete,

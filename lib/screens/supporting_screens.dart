@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../data/mock_data.dart';
 import '../models/models.dart';
@@ -1461,6 +1462,15 @@ class PromotionsHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return const _PromotionsExperience();
+  }
+}
+
+class OldPromotionsHubScreen extends StatelessWidget {
+  const OldPromotionsHubScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     final ctrl = context.read<NexusController>();
     final muted = Theme.of(context).dividerColor.withValues(alpha: .65);
 
@@ -1529,14 +1539,696 @@ class PromotionsHubScreen extends StatelessWidget {
   }
 }
 
+class _PromotionsExperience extends StatelessWidget {
+  const _PromotionsExperience();
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = context.watch<NexusController>();
+    final muted = Theme.of(context).dividerColor.withValues(alpha: .65);
+    final surface = Theme.of(context).colorScheme.surface;
+
+    final coupons = [
+      (
+        code: 'NEXUS10',
+        title: '10% off carts',
+        description: 'Up to \$250 off ready rigs and configured laptops.',
+        expires: 'ENDS JUN 30',
+      ),
+      (
+        code: 'UPGRADE75',
+        title: '\$75 upgrade credit',
+        description: 'Valid on carts over \$799 with parts or labor.',
+        expires: 'LIMITED DROP',
+      ),
+      (
+        code: 'FASTPASS',
+        title: 'Repair fast pass',
+        description: 'Adds priority queue flag during service booking.',
+        expires: 'SERVICE PERK',
+      ),
+    ];
+
+    final bundles = [
+      (
+        title: 'Streaming Creator Kit',
+        detail: 'Blade 16 + dock + capture card',
+        price: '\$2,149',
+        save: 'SAVE \$310',
+        icon: Icons.video_camera_front_outlined,
+      ),
+      (
+        title: 'Thermal Refresh Pack',
+        detail: 'Repaste + fans + dust service',
+        price: '\$129',
+        save: 'BUNDLE -22%',
+        icon: Icons.device_thermostat_rounded,
+      ),
+    ];
+
+    Future<void> copyCoupon(String code) async {
+      await Clipboard.setData(ClipboardData(text: code));
+      if (!context.mounted) return;
+      showNexusToast(context, '$code copied');
+    }
+
+    return Column(
+      children: [
+        _NexusStickyHeader(
+          title: 'PROMOS',
+          onBack: () => ctrl.navigate(ViewState.more),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 112),
+            children: [
+              BorderGradientPanel(
+                radius: 22,
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'FEATURED CAMPAIGN',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          color: muted,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Weekend Upgrade Drop',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'GPU, PSU, and cooling bundles with same-day bench install.',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: muted),
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => copyCoupon('UPGRADE75'),
+                              icon: const Icon(Icons.copy_rounded, size: 17),
+                              label: Text(
+                                'UPGRADE75',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 11),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: GradientRgbButton(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              onPressed: () {
+                                ctrl.applyCoupon('UPGRADE75');
+                                showNexusToast(context, 'COUPON READY');
+                                ctrl.navigate(ViewState.cart);
+                              },
+                              child: const Text('APPLY'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _capsLabel(context, muted, 'COUPONS'),
+              ...coupons.map(
+                (coupon) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: surface.withValues(alpha: .82),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: muted.withValues(alpha: .45)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: NexusPalette.cyan.withValues(alpha: .11),
+                          border: Border.all(
+                            color: NexusPalette.cyan.withValues(alpha: .45),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.confirmation_number_outlined,
+                          color: NexusPalette.cyan,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              coupon.title,
+                              style: GoogleFonts.jetBrainsMono(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              coupon.description,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(color: muted),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${coupon.code} - ${coupon.expires}',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 9,
+                                letterSpacing: 1.3,
+                                color: NexusPalette.magenta,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Copy coupon',
+                        onPressed: () => copyCoupon(coupon.code),
+                        icon: const Icon(Icons.copy_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _capsLabel(context, muted, 'FEATURED DEALS'),
+              ...featuredProducts.map(
+                (product) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: muted.withValues(alpha: .45)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => ctrl.navigate(
+                      ViewState.product,
+                      params: {'id': product.id},
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 16 / 7,
+                          child: NexusNetworkImage(
+                            imageUrl: product.image,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product.name,
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Promo price from \$${(product.price * .92).toStringAsFixed(2)}',
+                                      style: TextStyle(color: muted),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right_rounded),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _capsLabel(context, muted, 'BUNDLES'),
+              ...bundles.map(
+                (bundle) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: LinearGradient(
+                      colors: [
+                        NexusPalette.violet.withValues(alpha: .17),
+                        surface.withValues(alpha: .9),
+                      ],
+                    ),
+                    border: Border.all(color: muted.withValues(alpha: .45)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(bundle.icon, color: NexusPalette.cyan, size: 30),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              bundle.title,
+                              style: GoogleFonts.jetBrainsMono(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              bundle.detail,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(color: muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            bundle.price,
+                            style: GoogleFonts.jetBrainsMono(
+                              color: NexusPalette.cyan,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            bundle.save,
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9,
+                              color: NexusPalette.magenta,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class RepairBookingScreen extends StatefulWidget {
   const RepairBookingScreen({super.key});
 
   @override
-  State<RepairBookingScreen> createState() => _RepairBookingScreenState();
+  State<RepairBookingScreen> createState() => _RepairBookingExperienceState();
 }
 
-class _RepairBookingScreenState extends State<RepairBookingScreen> {
+class _RepairBookingExperienceState extends State<RepairBookingScreen> {
+  final _modelController = TextEditingController(text: 'ROG Strix G16');
+  final _serialController = TextEditingController(text: 'NX-G16-4492');
+  final _notesController = TextEditingController();
+  String device = 'Gaming Laptop';
+  String service = 'Repair diagnostic';
+  String priority = 'Standard';
+  DateTime selectedDate = DateTime(2026, 6, 10);
+  String selectedTime = '14:00';
+
+  static const _devices = [
+    'Gaming Laptop',
+    'Creator Station',
+    'Handheld',
+    'Custom loop rig',
+  ];
+  static const _services = [
+    'Repair diagnostic',
+    'Performance upgrade',
+    'Thermal cleaning',
+    'Data migration',
+  ];
+  static const _times = ['10:00', '12:30', '14:00', '16:30'];
+
+  @override
+  void dispose() {
+    _modelController.dispose();
+    _serialController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  double get _estimatedFee {
+    final base = switch (service) {
+      'Performance upgrade' => 79.0,
+      'Thermal cleaning' => 39.0,
+      'Data migration' => 59.0,
+      _ => 49.0,
+    };
+    return base + (priority == 'Rush' ? 30 : 0);
+  }
+
+  void _submit(NexusController ctrl) {
+    if (_modelController.text.trim().isEmpty) {
+      showNexusToast(context, 'DEVICE MODEL REQUIRED');
+      return;
+    }
+    final stamp = DateTime.now().millisecondsSinceEpoch.toString();
+    ctrl.createBookingTicket(
+      BookingTicket(
+        ticketId: 'RT-${stamp.substring(stamp.length - 6)}',
+        deviceType: device,
+        deviceModel: _modelController.text.trim(),
+        serialNumber: _serialController.text.trim().isEmpty
+            ? 'Not provided'
+            : _serialController.text.trim(),
+        serviceType: service,
+        serviceNotes: _notesController.text.trim().isEmpty
+            ? 'Bench team will confirm symptoms at intake.'
+            : _notesController.text.trim(),
+        slot: selectedDate,
+        timeSlot: selectedTime,
+        priority: priority,
+        estimatedFee: _estimatedFee,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = context.read<NexusController>();
+    final muted = Theme.of(context).dividerColor.withValues(alpha: .65);
+
+    return Column(
+      children: [
+        _NexusStickyHeader(
+          title: 'BOOK REPAIR',
+          onBack: () => ctrl.navigate(ViewState.more),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 16, 22, 120),
+            children: [
+              _capsLabel(context, muted, 'DEVICE'),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(),
+                initialValue: device,
+                items: _devices
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) => setState(() => device = v ?? device),
+              ),
+              const SizedBox(height: 18),
+              _capsLabel(context, muted, 'MODEL'),
+              TextField(
+                controller: _modelController,
+                decoration: const InputDecoration(
+                  hintText: 'Device brand and model',
+                  prefixIcon: Icon(Icons.devices_other_rounded),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _capsLabel(context, muted, 'SERIAL'),
+              TextField(
+                controller: _serialController,
+                decoration: const InputDecoration(
+                  hintText: 'Serial number or asset tag',
+                  prefixIcon: Icon(Icons.qr_code_2_rounded),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _capsLabel(context, muted, 'SERVICE'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _services.map((option) {
+                  final active = service == option;
+                  return ChoiceChip(
+                    selected: active,
+                    label: Text(
+                      option,
+                      style: GoogleFonts.jetBrainsMono(fontSize: 10),
+                    ),
+                    selectedColor: NexusPalette.cyan.withValues(alpha: .16),
+                    side: BorderSide(
+                      color: active
+                          ? NexusPalette.cyan
+                          : muted.withValues(alpha: .55),
+                    ),
+                    onSelected: (_) => setState(() => service = option),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 18),
+              _capsLabel(context, muted, 'SERVICE DETAILS'),
+              TextField(
+                controller: _notesController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Symptoms, upgrade target, warranty notes',
+                ),
+              ),
+              const SizedBox(height: 18),
+              _capsLabel(context, muted, 'DATE'),
+              Row(
+                children: List.generate(3, (index) {
+                  final day = DateTime(2026, 6, 10 + index);
+                  final active =
+                      selectedDate.year == day.year &&
+                      selectedDate.month == day.month &&
+                      selectedDate.day == day.day;
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: index == 2 ? 0 : 8),
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: active ? NexusPalette.cyan : null,
+                          side: BorderSide(
+                            color: active
+                                ? NexusPalette.cyan
+                                : muted.withValues(alpha: .55),
+                          ),
+                        ),
+                        onPressed: () => setState(() => selectedDate = day),
+                        child: Text(
+                          'JUN ${day.day}',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 11),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 18),
+              _capsLabel(context, muted, 'TIME SLOT'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _times.map((time) {
+                  final active = selectedTime == time;
+                  return ChoiceChip(
+                    selected: active,
+                    label: Text(
+                      time,
+                      style: GoogleFonts.jetBrainsMono(fontSize: 10),
+                    ),
+                    selectedColor: NexusPalette.magenta.withValues(alpha: .16),
+                    side: BorderSide(
+                      color: active
+                          ? NexusPalette.magenta
+                          : muted.withValues(alpha: .55),
+                    ),
+                    onSelected: (_) => setState(() => selectedTime = time),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 18),
+              _capsLabel(context, muted, 'PRIORITY'),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  'Rush queue (+\$30)',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 12),
+                ),
+                subtitle: Text(
+                  'Moves intake to the next available bench slot.',
+                  style: TextStyle(color: muted),
+                ),
+                value: priority == 'Rush',
+                onChanged: (value) =>
+                    setState(() => priority = value ? 'Rush' : 'Standard'),
+              ),
+              const Divider(height: 28),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('ESTIMATED INTAKE', style: TextStyle(color: muted)),
+                  Text(
+                    '\$ ${_estimatedFee.toStringAsFixed(2)}',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: NexusPalette.cyan,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              GradientRgbButton(
+                onPressed: () => _submit(ctrl),
+                child: const Text('LOCK SLOT'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class BookingConfirmationScreen extends StatelessWidget {
+  const BookingConfirmationScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = context.watch<NexusController>();
+    final ticket = ctrl.lastBookingTicket;
+    final muted = Theme.of(context).dividerColor.withValues(alpha: .65);
+    final dateText = ticket == null
+        ? 'Pending'
+        : 'Jun ${ticket.slot.day}, ${ticket.timeSlot} local';
+
+    Widget row(String label, String value) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                color: muted,
+                letterSpacing: 1.4,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Column(
+      children: [
+        _NexusStickyHeader(
+          title: 'BOOKING TICKET',
+          onBack: () => ctrl.navigate(ViewState.more),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 112),
+            children: [
+              BorderGradientPanel(
+                radius: 22,
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.build_circle_outlined,
+                            color: NexusPalette.cyan,
+                            size: 34,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              ticket?.ticketId ?? 'RT-DEMO',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      row('DEVICE', ticket?.deviceType ?? 'Device'),
+                      row('MODEL', ticket?.deviceModel ?? 'Model pending'),
+                      row('SERIAL', ticket?.serialNumber ?? 'Not provided'),
+                      row('SERVICE', ticket?.serviceType ?? 'Diagnostic'),
+                      row('SLOT', dateText),
+                      row('PRIORITY', ticket?.priority ?? 'Standard'),
+                      row(
+                        'ESTIMATE',
+                        '\$ ${(ticket?.estimatedFee ?? 0).toStringAsFixed(2)}',
+                      ),
+                      const Divider(height: 26),
+                      Text(
+                        ticket?.serviceNotes ??
+                            'Bench team will confirm symptoms at intake.',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: muted),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              GradientRgbButton(
+                onPressed: () => ctrl.navigate(ViewState.repairTracker),
+                child: const Text('TRACK SERVICE'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: () => ctrl.navigate(ViewState.booking),
+                child: Text(
+                  'BOOK ANOTHER DEVICE',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class LegacyRepairBookingScreenState extends State<RepairBookingScreen> {
   String device = 'Gaming Laptop';
   DateTime slot = DateTime(2026, 6, 1, 14);
 

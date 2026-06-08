@@ -18,13 +18,78 @@ Iterable<MapEntry<String, String>> productSpecPairs(ProductSpecs s) sync* {
   if (s.display != null) yield MapEntry('DISPLAY', s.display!);
 }
 
-class CheckoutScreen extends StatelessWidget {
+class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
+
+  @override
+  State<CheckoutScreen> createState() => _CheckoutScreenState();
+}
+
+class _CheckoutScreenState extends State<CheckoutScreen> {
+  final _couponController = TextEditingController();
+  String _deliveryWindow = 'Today 16:00-18:00';
+  String _paymentLabel = 'Visa 4421';
+
+  @override
+  void dispose() {
+    _couponController.dispose();
+    super.dispose();
+  }
+
+  void _applyCoupon(NexusController store) {
+    final ok = store.applyCoupon(_couponController.text);
+    showNexusToast(context, ok ? 'COUPON APPLIED' : 'COUPON NOT FOUND');
+    if (ok) _couponController.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
     final store = context.watch<NexusController>();
     final muted = Theme.of(context).dividerColor.withValues(alpha: .75);
+    final subtotal = store.cartSubtotal;
+    final discount = store.cartDiscount;
+    final shipping = store.cartShipping;
+    final tax = store.cartTax;
+    final total = store.cartTotal;
+
+    if (store.cart.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StickyBar(
+            icon: Icons.chevron_left,
+            title: 'CHECKOUT',
+            onLeading: () => store.navigate(ViewState.cart),
+          ),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.receipt_long_outlined, size: 48, color: muted),
+                    const SizedBox(height: 16),
+                    Text(
+                      'NOTHING TO CHECK OUT',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    GradientRgbButton(
+                      onPressed: () => store.navigate(ViewState.home),
+                      child: const Text('SHOP FEATURED GEAR'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -41,6 +106,142 @@ class CheckoutScreen extends StatelessWidget {
             padding: const EdgeInsets.all(22),
             children: [
               Text(
+                'ORDER ITEMS',
+                style: GoogleFonts.jetBrainsMono(
+                  color: muted,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...store.cart.map((e) {
+                final options = e.configOptions;
+                final optionText = options == null
+                    ? ''
+                    : [
+                        if (options.ram != null) options.ram!,
+                        if (options.storage != null) options.storage!,
+                      ].join(' / ');
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: muted.withValues(alpha: .45)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              store.featuredById(e.productId)?.name ??
+                                  'CUSTOM ITEM',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              optionText.isEmpty
+                                  ? 'Qty ${e.qty}'
+                                  : 'Qty ${e.qty} - $optionText',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10,
+                                color: muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '\$ ${(e.price * e.qty).toStringAsFixed(2)}',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: NexusPalette.cyan,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 8),
+              Text(
+                'COUPON',
+                style: GoogleFonts.jetBrainsMono(
+                  color: muted,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _couponController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: InputDecoration(
+                        hintText: store.activeCouponCode ?? 'NEXUS10',
+                        prefixIcon: const Icon(Icons.local_offer_outlined),
+                      ),
+                      onSubmitted: (_) => _applyCoupon(store),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton(
+                    onPressed: () => _applyCoupon(store),
+                    child: Text(
+                      'APPLY',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
+              if (store.activeCouponCode != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: store.removeCoupon,
+                    icon: const Icon(Icons.close_rounded, size: 16),
+                    label: Text(
+                      'REMOVE ${store.activeCouponCode}',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 10),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 18),
+              Text(
+                'DELIVERY',
+                style: GoogleFonts.jetBrainsMono(
+                  color: muted,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _CheckoutChoiceGroup(
+                values: const [
+                  'Today 16:00-18:00',
+                  'Tomorrow 10:00-12:00',
+                  'Store pickup',
+                ],
+                selected: _deliveryWindow,
+                onSelected: (value) => setState(() => _deliveryWindow = value),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'PAYMENT',
+                style: GoogleFonts.jetBrainsMono(
+                  color: muted,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _CheckoutChoiceGroup(
+                values: const ['Visa 4421', 'Nexus Pay', 'Pay in store'],
+                selected: _paymentLabel,
+                onSelected: (value) => setState(() => _paymentLabel = value),
+              ),
+              const Divider(height: 32),
+              Text(
                 'ORDER SUMMARY',
                 style: GoogleFonts.jetBrainsMono(
                   color: muted,
@@ -48,52 +249,233 @@ class CheckoutScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              ...store.cart.map(
-                (e) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    store.featuredById(e.productId)?.name ?? 'CUSTOM ITEM',
-                  ),
-                  trailing: Text(
-                    '\$ ${e.price.toStringAsFixed(2)}',
-                    style: GoogleFonts.jetBrainsMono(color: NexusPalette.cyan),
-                  ),
-                  subtitle: Text(
-                    'Qty ${e.qty}',
-                    style: TextStyle(color: muted),
-                  ),
+              _CheckoutPriceLine(label: 'Subtotal', amount: subtotal),
+              if (discount > 0)
+                _CheckoutPriceLine(
+                  label: 'Discount',
+                  amount: -discount,
+                  color: Colors.lightGreenAccent,
                 ),
+              _CheckoutPriceLine(
+                label: shipping == 0 ? 'Shipping' : 'Courier',
+                amount: shipping,
+                color: shipping == 0 ? Colors.lightGreenAccent : null,
               ),
-              const Divider(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('TOTAL EST.', style: TextStyle(color: muted)),
-                  Text(
-                    '\$ ${store.cartSubtotal.toStringAsFixed(2)}',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ],
+              _CheckoutPriceLine(label: 'Estimated tax', amount: tax),
+              const Divider(height: 26),
+              _CheckoutPriceLine(
+                label: 'Total',
+                amount: total,
+                color: NexusPalette.cyan,
+                emphasized: true,
               ),
               const SizedBox(height: 24),
               GradientRgbButton(
-                onPressed: () {
-                  showNexusToast(context, 'ORDER PLACED');
-                  store.clearCart();
-                  store.navigate(
-                    ViewState.orders,
-                    params: {'origin': 'checkout'},
-                  );
-                },
+                onPressed: () => store.placeMockOrder(
+                  deliveryWindow: _deliveryWindow,
+                  paymentLabel: _paymentLabel,
+                ),
                 child: const Text('PAY SECURELY'),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class CheckoutConfirmationScreen extends StatelessWidget {
+  const CheckoutConfirmationScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.watch<NexusController>();
+    final confirmation = store.lastCheckoutConfirmation;
+    final muted = Theme.of(context).dividerColor.withValues(alpha: .75);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StickyBar(
+          icon: Icons.close_rounded,
+          title: 'ORDER CONFIRMED',
+          onLeading: () => store.navigate(ViewState.home),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 24, 22, 112),
+            children: [
+              BorderGradientPanel(
+                radius: 22,
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.verified_rounded,
+                            color: NexusPalette.cyan,
+                            size: 34,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              confirmation?.orderId ?? 'NX-DEMO',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Your mock order is queued for fulfillment.',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: muted),
+                      ),
+                      const SizedBox(height: 20),
+                      _CheckoutPriceLine(
+                        label: 'Items',
+                        amount: (confirmation?.itemCount ?? 0).toDouble(),
+                        asMoney: false,
+                      ),
+                      _CheckoutPriceLine(
+                        label: 'Delivery',
+                        textValue: confirmation?.deliveryWindow ?? 'Pending',
+                      ),
+                      _CheckoutPriceLine(
+                        label: 'Payment',
+                        textValue: confirmation?.paymentLabel ?? 'Mock pay',
+                      ),
+                      const Divider(height: 26),
+                      _CheckoutPriceLine(
+                        label: 'Paid total',
+                        amount: confirmation?.total ?? 0,
+                        color: NexusPalette.cyan,
+                        emphasized: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              OutlinedButton.icon(
+                onPressed: () => store.navigate(
+                  ViewState.orders,
+                  params: {'origin': 'checkout'},
+                ),
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: Text(
+                  'VIEW ORDER HISTORY',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => store.navigate(ViewState.home),
+                child: Text(
+                  'BACK TO HOME',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CheckoutChoiceGroup extends StatelessWidget {
+  const _CheckoutChoiceGroup({
+    required this.values,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<String> values;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: values.map((value) {
+        final active = value == selected;
+        return ChoiceChip(
+          selected: active,
+          label: Text(value, style: GoogleFonts.jetBrainsMono(fontSize: 10)),
+          selectedColor: NexusPalette.cyan.withValues(alpha: .18),
+          side: BorderSide(
+            color: active
+                ? NexusPalette.cyan
+                : Theme.of(context).dividerColor.withValues(alpha: .55),
+          ),
+          onSelected: (_) => onSelected(value),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _CheckoutPriceLine extends StatelessWidget {
+  const _CheckoutPriceLine({
+    required this.label,
+    this.amount,
+    this.textValue,
+    this.color,
+    this.emphasized = false,
+    this.asMoney = true,
+  });
+
+  final String label;
+  final double? amount;
+  final String? textValue;
+  final Color? color;
+  final bool emphasized;
+  final bool asMoney;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).dividerColor.withValues(alpha: .75);
+    final value =
+        textValue ??
+        (asMoney
+            ? '${(amount ?? 0) < 0 ? '-' : ''}\$ ${(amount ?? 0).abs().toStringAsFixed(2)}'
+            : '${(amount ?? 0).round()}');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: muted,
+                fontWeight: emphasized ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.jetBrainsMono(
+              fontWeight: emphasized ? FontWeight.bold : FontWeight.w500,
+              fontSize: emphasized ? 18 : 13,
+              color: color ?? Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

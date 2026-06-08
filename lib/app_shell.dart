@@ -30,6 +30,7 @@ class NexusFlutterApp extends StatelessWidget {
       view == ViewState.nearby ||
       view == ViewState.promotions ||
       view == ViewState.booking ||
+      view == ViewState.bookingConfirmation ||
       view == ViewState.chat ||
       view == ViewState.reviews ||
       view == ViewState.media ||
@@ -52,6 +53,7 @@ class NexusFlutterApp extends StatelessWidget {
           ViewState.more => const ExploreMoreScreen(),
           ViewState.cart => const CartSheet(),
           ViewState.checkout => const CheckoutScreen(),
+          ViewState.checkoutConfirmation => const CheckoutConfirmationScreen(),
           ViewState.product => const ProductDetailRoute(),
           ViewState.category => const CategoryBrowseScreen(),
           ViewState.buildSummary => const BuildSummarySheet(),
@@ -68,6 +70,7 @@ class NexusFlutterApp extends StatelessWidget {
           ViewState.nearby => const NearbyAvailabilityScreen(),
           ViewState.promotions => const PromotionsHubScreen(),
           ViewState.booking => const RepairBookingScreen(),
+          ViewState.bookingConfirmation => const BookingConfirmationScreen(),
           ViewState.chat => const TechChatScreen(),
           ViewState.reviews => const CommunityReviewsScreen(),
           ViewState.media => const ShowcaseMediaScreen(),
